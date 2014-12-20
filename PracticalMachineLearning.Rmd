@@ -1,0 +1,7 @@
+---
+title: "PracticalMachineLearning"
+author: "Sasa Pakvovic"
+date: "Saturday, December 20, 2014"
+output: html_document
+---
+        
