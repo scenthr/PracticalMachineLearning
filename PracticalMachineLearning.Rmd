@@ -88,7 +88,7 @@ predictCVal <- predict(modelFit, cval)
 confusionMatrix(cval$classe, predictCVal)
 ```
 
-As we can see the model is performing at an accuracy of 99,7%.
+As we can see the model is performing at an accuracy of 99,7%, so the out-of-sample error is 0,03%.
 
 ###Using the model on the test dataset
 
