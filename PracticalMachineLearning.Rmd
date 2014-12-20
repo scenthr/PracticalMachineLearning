@@ -4,4 +4,105 @@ author: "Sasa Pakvovic"
 date: "Saturday, December 20, 2014"
 output: html_document
 ---
-        
+
+#Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website [here:](http://groupware.les.inf.puc-rio.br/har) (see the section on the Weight Lifting Exercise Dataset). 
+
+###Data
+The data comes form this [source](http://groupware.les.inf.puc-rio.br/har).
+
+###Analysis
+We will be using data acquired to build up a model to be able to predict how well 
+the practicioner is doing the exercise. For this purpose we will be creating random forest model because of its robustness in many situations.
+
+###Data sliceing
+We will be using some of the available R packages to prepare the model.
+
+```{r}
+library(caret)
+library(kernlab)
+library(randomForest)
+library(corrplot)
+set.seed(1050)
+```
+
+```{r,echo=FALSE,cache=TRUE}
+# check if a data folder exists; if not then create one
+if (!file.exists("data")) {dir.create("data")}
+
+# download files
+filesource <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+destfile1 <- "./data/trainpml"
+download.file(filesource,destfile1,method="curl")
+
+filesource <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+destfile2 <- "./data/testpml"
+download.file(filesource,destfile2,method="curl")
+
+# read the csv file
+train <- read.csv("./data/trainpml", na.strings= c("NA",""," "))
+```
+
+After loading and looking a little bit at the data using eploratory data analysis
+very soon is clear that data has a lot of NAs and has columns which can not help
+us in building a model(metadata).
+
+```{r}
+# cleaning of the data needed
+trainNAs <- apply(train, 2, function(x) {sum(is.na(x))})
+trainclean <- train[,which(trainNAs==0)]
+
+# for prediction we will not include firsr 8 rows
+trainclean <- trainclean[8:length(trainclean)]
+
+```
+
+###Model building
+
+On clean data we need to divide the train data set into training and cross-validation datasets. Iv decided to take a 80/20 split.
+
+```{r}
+# split the train data into 2 sets - training and cross validation
+inTrain <- createDataPartition(y = trainclean$classe, p = 0.8, list = FALSE)
+training <- trainclean[inTrain, ]
+cval <- trainclean[-inTrain, ]
+```
+
+We can take a look at the correlation matrix of all the predictors.
+
+```{r}
+# calc the correlation matrix
+cormatrix <- cor(training[, -length(training)])
+corrplot(cormatrix, order = "FPC", method = "circle", type = "lower", tl.cex = 0.7,  tl.col = rgb(0, 0, 0))
+```
+
+We are going to deploy a radnom forest model to predict classe using all other 
+feautres as predictors. We will use crossvalidation to build up a confusion matrix and check how the model is performing.
+
+```{r}
+# fit a radnom forest model 
+modelFit <- randomForest(classe ~ ., data = training)
+# crossvalidate the model
+predictCVal <- predict(modelFit, cval)
+confusionMatrix(cval$classe, predictCVal)
+```
+
+As we can see the model is performing at an accuracy of 99,7%.
+
+###Using the model on the test dataset
+
+Only thing left to do is use our model on the the test dataset and predict the 
+classes of classe.
+
+```{r}
+# now use the model on the test data
+test <- read.csv("./data/testpml", na.strings= c("NA",""," "))
+testNAs <- apply(test, 2, function(x) {sum(is.na(x))})
+testclean <- test[,which(testNAs==0)]
+testclean <- testclean[8:length(testclean)]
+predictTest <- predict(modelFit, testclean)
+predictTest
+```
+
+
